@@ -93,13 +93,14 @@ class SongPlayer():
         self.chartpos = self.chartimg.get_rect(center = self.display.get_rect().center) 
         #chartendimg is used to hide the note when it reaches outside
         self.chartendimg = pygame.image.load("assets/images/chart-end.png").convert_alpha()
-        self.chartendimg = pygame.transform.scale(self.chartendimg,(monitorHeight,monitorHeight))
+        self.chartendimg = pygame.transform.scale(self.chartendimg,(monitorHeight*1.25,monitorHeight))
+        self.chartendpos = self.chartendimg.get_rect(center = self.display.get_rect().center) 
     def updateHolds(self):
         for note in self.activebuffer:
             if note.name ==  'HoldNote':
                 note.elapsedDuration += 1 
                 note.sprite[2].elapsedDuration += 1 
-                if int(note.elapsedDuration) == int(note.holdDuration):
+                if int(note.elapsedDuration) >= int(note.holdDuration)-1:
 
                     
                     note.sprite[1].locked = False
@@ -185,7 +186,7 @@ class SongPlayer():
 
                 # if game is inconsistant, check actualms to compare the actual milisecond time plaused and compare to the tpb
                 actualms = pygame.time.delay(tpb)
-                print(actualms - tpb, "timing difference")
+                # print(actualms - tpb, "timing difference")
 
                 # since each loop cycle is 1/16th of the beat, incrument 1/16
                 currentbarfraction += 1/16
@@ -267,16 +268,20 @@ class SongPlayer():
                         elif spriteindex == 1 and math.sqrt((pos[0] - self.center[0] + img.get_rect().centerx)**2 + (pos[1] - self.center[1] + img.get_rect().centery)**2) > self.radiusConst * 1.2:
                             self.activebuffer.remove(note) #if tail has passed judgement, delete hold from memoery
                     elif spriteindex == 2: #same deal here but for segments so for loop must be implemented
-                        
+                        pos = note.sprite[1].pos
                         for segment in img:
+                            segmentpos = segment[1]
+                            if math.sqrt((segmentpos[0] - self.center[0] + segment[0].get_rect().centerx)**2 + (segmentpos[1] - self.center[1] + segment[0].get_rect().centery)**2) > self.radiusConst * 1.2:
+                                continue
                             if not math.sqrt((pos[0] - self.center[0] + segment[0].get_rect().centerx)**2 + (pos[1] - self.center[1] + segment[0].get_rect().centery)**2) > self.radiusConst * 1.2:
                                 self.display.blit(segment[0], segment[1])
-                            else:
-                                img.remove(segment)
+
+                            
+                            
                         
                     elif math.sqrt((pos[0] - self.center[0] + img.get_rect().centerx)**2 + (pos[1] - self.center[1] + img.get_rect().centery)**2) > self.radiusConst * 1.2 :
                         if note.name == "TapNote":
-                            #judgementtext = judgement.render('Miss', False, (255,255,255))
+                            judgementtext = judgement.render('Miss', False, (255,255,255))
                             self.activebuffer.remove(note)
                             # self.display.blit(judgementtext, ((0.5*w )- (judgementtext.get_rect().centerx), 0.5*h - judgementtext.get_rect().centery))
                             # print('Miss')
@@ -292,7 +297,7 @@ class SongPlayer():
                 
             
             # display notes in between
-            self.display.blit(self.chartendimg, self.chartpos)
+            self.display.blit(self.chartendimg, self.chartendpos)
             
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
