@@ -85,7 +85,7 @@ def phraseHold(speed : float, button : int, beat : int, duration : float, breakn
 #         }
 #     return bar
     
-def phrase_simai(chart, diffcuilty, speed):
+def phrase_simai(chart, diffcuilty, speed): #loads chart into memory
     chart = chart.split('\n')
     bpm = 120
     
@@ -145,7 +145,7 @@ def phrase_simai(chart, diffcuilty, speed):
                     phrasednotes.append(note)
             
                 if 'h' in i:
-                    note = HoldNote(divider = int(i.split(':')[0][-1]), duration = int(i.split(':')[1][0]), timeSig = int(timesig))
+                    note = HoldNote(divider = int(i.split(':')[0][-1]), duration = int(i.split(':')[1][0]), timeSig = int(timesig), bpm=bpm)
 
                     try:
                         note.buttonNumber = int(i[0]) - 1
@@ -183,7 +183,7 @@ def phrase_simai(chart, diffcuilty, speed):
                 phrasednotes.append(note)
            
             if 'h' in i:
-                note = HoldNote(divider = int(i.split(':')[0][-1]), duration = int(i.split(':')[1][0]), timeSig = int(timesig))
+                note = HoldNote(divider = int(i.split(':')[0][-1]), duration = int(i.split(':')[1][0]), timeSig = int(timesig), bpm=bpm)
                 try:
                     note.buttonNumber = int(i[0]) - 1
                 except:
@@ -204,7 +204,8 @@ def phrase_simai(chart, diffcuilty, speed):
                     note.sprite[1].double()
                     note.sprite[2].double()
                 phrasednotes.append(note)
-            
+            elif len(i) != 1:
+                phrasednotes.append(None)
             
 
             barFraction += 1
@@ -221,6 +222,34 @@ def phrase_simai(chart, diffcuilty, speed):
 
     
     return phrasedchart
+def unpackChart(chart, radiusConst, summonRing, speed):
+    #basically play through the entire chart and assigns each note a milisecond value when they appear.
+    currentTime = 0 #im miliseconds, increment as the program phrases the chart
+    notelineup = [] #used to dump all the notes in a single array.
+    print(chart, "This is the song chart")
+    doubleCounted = True #each pair has two double notes, but to skip counting only one double note must be considered
+    for bar in chart:
+        timePerComma = 240/(bar['bpm'] * bar['timesig']) * 1000 #time in miliseconds
+
+        for note in bar['notes']:
+            if note == None:
+                currentTime += timePerComma
+            else:
+                note.radiusConst = radiusConst
+                note.summonRing = summonRing
+                if note.doubleNote == False or doubleCounted:
+                    currentTime += timePerComma
+                    doubleCounted = False
+                else:
+                    doubleCounted = True
+                note.milisecond = currentTime
+                note.speed = speed
+                note.calculateSummonMilisecond()
+                notelineup.append(note)
+
+    return notelineup
+
+
 
 class Note:
     def __init__(self):
@@ -230,7 +259,14 @@ class Note:
         self.breakNote = False #false or true, breaknotes provide extra points
         self.doubleNote = False #if true then graphics is yellow
         self.sprite = [None]
-
+        self.radiusConst = 0
+        self.summonRing = 0
+        self.speed = 0 #speed in pixels per frame
+        self.milisecond = 0 #this is miliseconds elapsed since beginning of song when the note should hit the judgement line
+         #this is the miliseconds elapsed since the beginning of a song when the note should be summoned
+    def calculateSummonMilisecond(self):
+        self.summonMilisecond = self.milisecond - (self.radiusConst - self.summonRing)/self.speed #time elapsed since beginning of the song when the note should come from the summon line.
+    
 class TapNote(Note):
     name = 'TapNote'
     def __init__(self):
@@ -240,7 +276,7 @@ class TapNote(Note):
 
 class HoldNote(Note):
     name = 'HoldNote'
-    def __init__(self, divider, duration, timeSig):
+    def __init__(self, divider, duration, timeSig, bpm):
         super().__init__()
         self.divider = divider #1 is whole note, 2 is half note, 4 is quarter note, 8 is eigth note etc.
         self.duration = duration #how many "notes" of duration. e.g. 1 divider and 2 duration would be 2 whole notes whilst 2 divider 4 duation would be 4 half notes
@@ -248,9 +284,12 @@ class HoldNote(Note):
         #time signature for the current bar
         self.headSprite = None #head of hold note
 
-        self.holdDuration = self.timeSig/4 * 4/self.divider * self.duration * 16 #duration is in 1/16th per-comma length (per-comma length is basically a quarter note unit) or whatever the defined unit is
+        self.holdDuration = 240000/(int(bpm) * self.divider) * self.duration #duration is in 1/16th per-comma length (per-comma length is basically a quarter note unit) or whatever the defined unit is
         self.tailSprite = None #tail of hold note
         self.elapsedDuration = 0 #in 1/16th of notes
+        
+
+        
         self.bodySprite = None
         self.sprite = [self.headSprite, self.tailSprite, self.bodySprite]
         self.issegment = False

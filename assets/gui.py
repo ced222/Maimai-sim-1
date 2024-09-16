@@ -296,7 +296,7 @@ class MainGUI:
             self.display.blit(self.textsurface, ((0.5*w )- (self.textsurface.get_rect().centerx), 0.30*h - self.textsurface.get_rect().centery))
             if self.currentselection < 0:
                 self.currentselection = 0
-            self.nextgenreindex = 0
+            self.nextgenreindex = 1
             if self.currentselection > self.nextgenreindex-self.genreoffset:
                 self.currentselection = self.oldselection
             if self.oldselection != self.currentselection:

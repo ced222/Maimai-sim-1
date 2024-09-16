@@ -88,7 +88,7 @@ class HoldTail:
         self.button = button
         self.x = summonRing * buttonpositions(self.button)[0]
         self.y = summonRing * buttonpositions(self.button)[1]
-        
+        self.locked = True
         self.angles = [22.5, 67.5, 112.5,157.5, 202.5, 247.5, 292.5, 337.5]
         self.image = pygame.transform.scale(self.image, (monitorHeight/14, monitorHeight/14))
         self.image = pygame.transform.rotate(self.image, self.angles[self.button - 4] * -1)

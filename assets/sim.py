@@ -17,12 +17,12 @@ if __name__ == '__main__':
     pygame.display.toggle_fullscreen()
  
 
-from loader import phrase_simai
+from loader import phrase_simai, unpackChart
 
 
 
 
-def getChart(path, diffcuilty, speed):
+def getChart(path, diffcuilty, speed, radiusConst, summonRing):
     #return loader.phrase_simai(simaichart)
     with open(path+'/maidata.txt', 'rb') as f:
         simaichart = f.read()
@@ -39,8 +39,10 @@ def getChart(path, diffcuilty, speed):
                     break
     # print(simaichart)
     simaichart = '\n'.join(simaichart)
-    print(simaichart)
-    chart = phrase_simai(simaichart, diffcuilty, speed)
+    
+
+
+    chart = unpackChart(phrase_simai(simaichart, diffcuilty, speed), radiusConst, summonRing, speed)
     musicpath = path+'/track.mp3'
     return chart, musicpath
 
@@ -74,10 +76,10 @@ class SongPlayer():
         self.speed = int((self.radiusConst - self.summonRing) / timeTicks)    #this is in pixels per tick.
 
         self.speedMs = int((self.radiusConst - self.summonRing) / timeMs)
-        print(self.speed, "notespeed")
+        
         self.fps = pygame.time.Clock()
-        self.phrasedchart, self.musicpath = getChart(path, diffcuilty, self.speed)
-
+        self.phrasedchart, self.musicpath = getChart(path, diffcuilty, self.speedMs, self.radiusConst, self.summonRing)
+        
         # print(self.phrasedchart)
 
         # self.buffer = []
@@ -116,42 +118,45 @@ class SongPlayer():
         offset = 0
         # seperate loop that runs every 1/16th of a beat
         # higher accuracy may be needed later on 
-
+        currentTime = pygame.mixer.music.get_pos()
+        print(currentTime, int(self.phrasedchart[0].milisecond))
         while self.running:
-
-            currentbar = chart[bar]
-            notes = currentbar['notes']
-            # tpb : time per 1/16th beat in ms1000
-            tpb = (240/currentbar['bpm'])/(currentbar['timesig'])*(1000/16)
-            # print(tpb)
-            offset += tpb - int(tpb)
-            tpb = int(tpb)
-            if offset >= 1:
-                tpb += int(offset)
-                offset -= int(offset)
+            clock.tick(1000)
+            self.updateHolds()
             
             
+            currentTime = pygame.mixer.music.get_pos()
+            
+            if int(currentTime) >= int(self.phrasedchart[0].milisecond):
+                self.activebuffer.append(self.phrasedchart[0])
+                self.phrasedchart.pop(0)
+                print(self.phrasedchart[0].milisecond)
+                if int(currentTime) >= int(self.phrasedchart[0].milisecond): #check for double notes
+                    self.activebuffer.append(self.phrasedchart[0])
+                    self.phrasedchart.pop(0)
+           
+            
             # print(tpb)
-            while self.running:
+            
 
-                self.updateHolds()
+                
                 # Go through the current bar
-                for note in notes:
+                # for note in notes:
                     
 
-                    # Check if the current 16th beat is the one to display the note for
-                    if note.barFraction == currentbarfraction:
-                        # Different note types
-                        if note.name == 'TapNote':
-                            self.activebuffer.append(note)
-                        if note.name == 'HoldNote':
-                            self.activebuffer.append(note)
+                #     # Check if the current 16th beat is the one to display the note for
+                #     if note.barFraction == currentbarfraction:
+                #         # Different note types
+                #         if note.name == 'TapNote':
+                #             self.activebuffer.append(note)
+                #         if note.name == 'HoldNote':
+                #             self.activebuffer.append(note)
                             
-                            # Fix for note sprite so that they appear consistant to the offical game play
-                            note.sprite[0].update(25)
-                            note.sprite[1].locked = False
-                            note.sprite[1].update(-25)
-                            note.sprite[1].locked = True
+                #             # Fix for note sprite so that they appear consistant to the offical game play
+                #             note.sprite[0].update(25)
+                #             note.sprite[1].locked = False
+                #             note.sprite[1].update(-25)
+                #             note.sprite[1].locked = True
                             
                             # Keep track of the current hold notes that are being displayed
                             
@@ -184,28 +189,25 @@ class SongPlayer():
                         #     note.tailSprite.locked = True
 
                 # if game is inconsistant, check actualms to compare the actual milisecond time plaused and compare to the tpb
-                actualms = pygame.time.delay(tpb)
-                print(actualms - tpb, "timing difference")
+                
+                
 
                 # since each loop cycle is 1/16th of the beat, incrument 1/16
-                currentbarfraction += 1/16
+                
 
                 #update hold notes
 
                 
 
                 # if end of the bar, incrument bar
-                if int(currentbarfraction) >= currentbar['timesig']:
-                    bar += 1
-                    currentbarfraction = 0
-                    break
+              
 
     def load_music(self):
         # load the music, calculate time offset
 
-        offset = 0.250
+        #offset = 0.250
 
-        time.sleep((300/self.radiusConst)+offset)
+        #time.sleep((300/self.radiusConst)+offset)
         pygame.mixer.music.play()
 
     def play(self,):
@@ -217,6 +219,7 @@ class SongPlayer():
         self.running = True
         #load bar to read
         pygame.mixer.music.load(self.musicpath)
+         
         threading.Thread(target=self.load_music, daemon=True).start()
         
         
@@ -242,15 +245,16 @@ class SongPlayer():
         for x,y in buttonpositions:
             buttonpositions[buttonpositions.index((x,y))] = ((0.5-(h * 0.45 * x)/w),0.5-(0.45 * y))
 
-
+    
         pressedlist = []
         judgement = pygame.font.Font("./assets/fonts/japanese.ttf",20)
         judgementtext = pygame.Surface((0,0))
+        clock = pygame.time.Clock()
         while self.running:
             # Tick FRAMERATE times per second
-            FRAMERATE = 1/(self.fps.tick()/1000)
-            # print(FRAMERATE, end = '\r')
             
+            # print(FRAMERATE, end = '\r')
+            clock.tick(FRAMERATE)
             
             self.display.fill((0,0,0))
             self.display.blit(self.chartimg, self.chartpos)
@@ -535,6 +539,7 @@ class SongPlayer():
 #     ticks += 1
 
 if __name__ == '__main__':
+
     path = './tmp/ゲームバラエティ/1051_DESTR0YER_DX'
     c = SongPlayer(path,display,6,1)
     
