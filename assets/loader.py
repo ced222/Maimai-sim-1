@@ -290,6 +290,7 @@ class HoldNote(Note):
         
 
         
+        self.elapsedDuration = 1 #in 1/16th of notes
         self.bodySprite = None
         self.sprite = [self.headSprite, self.tailSprite, self.bodySprite]
         self.issegment = False

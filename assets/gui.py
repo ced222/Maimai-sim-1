@@ -412,7 +412,7 @@ class MainGUI:
             if 2 in pressedlist:
                 if self.buttonlock[2] == 0:
                     self.currentselection += 1
-                    # print(self.currentselection)
+                    print(self.currentselection)
                 self.buttonlock[2] += 1
             elif self.buttonlock[2] >= 1:
                 self.buttonlock[2] = 0
@@ -420,7 +420,7 @@ class MainGUI:
             if 5 in pressedlist:
                 if self.buttonlock[5] == 0:
                     self.currentselection -= 1
-                    # print(self.currentselection)
+                    print(self.currentselection)
                 self.buttonlock[5] += 1
             elif self.buttonlock[5] >= 1:
                 self.buttonlock[5] = 0
